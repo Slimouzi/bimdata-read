@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bimdata-read"
+version = "0.1.0"
+description = "Noyau de lecture BIMData : client HTTP lecture seule + extraction/cache du ModelSnapshot."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [
+    { name = "Stanislas Limouzi", email = "stanislas@bimdata.io" },
+]
+dependencies = [
+    # Contrat commun : ModelSnapshot vit dans bim-core (résolu via la source Git
+    # ci-dessous — bim-core n'est pas publié sur PyPI).
+    "bim-core>=0.1.0,<0.2",
+    "requests>=2.31,<3",
+    # urllib3 : importé directement (client.py — urllib3.util.retry.Retry),
+    # pas seulement transitivement via requests.
+    "urllib3>=2,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+]
+
+[tool.uv.sources]
+bim-core = { git = "https://github.com/Slimouzi/bim-core.git", tag = "bim-core-v0.1.0" }
+
+[tool.setuptools.packages.find]
+include = ["bimdata_read*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
