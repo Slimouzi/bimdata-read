@@ -40,43 +40,37 @@ def test_url_and_paths():
 # ── BCF topics & Smart Views (lecture seule, filtrage par format) ────────────
 
 
-def _topics_client(monkeypatch, topics):
+def _topics_client(monkeypatch, response):
     c = BIMDataReadClient(base_url="https://api.bimdata.io", api_key="k", project_id=42)
-    seen = {}
+    calls = []
 
     def _fake_get(path, params=None):
-        seen["path"] = path
-        return topics
+        calls.append((path, params))
+        return response
 
     monkeypatch.setattr(c, "_get", _fake_get)
-    return c, seen
+    return c, calls
 
 
-_TOPICS = [
-    {"guid": "a", "title": "T1", "format": "standard"},
-    {"guid": "b", "title": "SV1", "format": "bimdata-smartview"},
-    {"guid": "c", "title": "T2", "format": "standard"},
-    {"guid": "d", "title": "no-format"},  # format absent → traité comme BCF
-]
+def test_list_bcf_topics_filters_standard_server_side(monkeypatch):
+    # Le filtrage est CÔTÉ SERVEUR via ?format=standard (l'endpoint sans param
+    # ne renvoie pas les Smart Views — vérifié contre l'API réelle).
+    c, calls = _topics_client(monkeypatch, [{"title": "T"}])
+    assert c.list_bcf_topics() == [{"title": "T"}]
+    assert calls == [("/bcf/2.1/projects/42/topics", {"format": "standard"})]
 
 
-def test_list_project_topics_uses_bcf_route(monkeypatch):
-    c, seen = _topics_client(monkeypatch, _TOPICS)
-    assert c.list_project_topics() == _TOPICS
-    assert seen["path"] == "/bcf/2.1/projects/42/topics"
+def test_list_smart_views_filters_smartview_server_side(monkeypatch):
+    c, calls = _topics_client(monkeypatch, [{"title": "SV"}])
+    assert c.list_smart_views() == [{"title": "SV"}]
+    assert calls == [("/bcf/2.1/projects/42/topics", {"format": "bimdata-smartview"})]
 
 
-def test_list_bcf_topics_excludes_smartviews(monkeypatch):
-    c, _ = _topics_client(monkeypatch, _TOPICS)
-    titles = [t["title"] for t in c.list_bcf_topics()]
-    assert titles == ["T1", "T2", "no-format"]  # tout sauf le smartview
-
-
-def test_list_smart_views_only_smartview_format(monkeypatch):
-    c, _ = _topics_client(monkeypatch, _TOPICS)
-    svs = c.list_smart_views()
-    assert [t["title"] for t in svs] == ["SV1"]
-    assert all(t["format"] == "bimdata-smartview" for t in svs)
+def test_list_project_topics_merges_both_formats(monkeypatch):
+    c, calls = _topics_client(monkeypatch, [{"title": "X"}])
+    res = c.list_project_topics()
+    assert len(res) == 2  # standard + smartview concaténés
+    assert [p for _, p in calls] == [{"format": "standard"}, {"format": "bimdata-smartview"}]
 
 
 # ── Dénormalisation /element/raw ─────────────────────────────────────────────
