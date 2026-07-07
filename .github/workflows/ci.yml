@@ -36,7 +36,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       # bim-core n'est pas sur PyPI : préinstaller le tag Git avant le package.
-      - run: pip install "git+https://github.com/Slimouzi/bim-core.git@bim-core-v0.1.0"
+      - run: pip install "git+https://github.com/Slimouzi/bim-core.git@bim-core-v0.1.1"
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
       - run: pytest tests -q

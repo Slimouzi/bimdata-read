@@ -18,10 +18,14 @@ dans `audit-bim-i3f`.
 
 ## Versions
 
-- **v0.1.3** — release courante. Filtrage des topics BCF **côté serveur** via le
-  query param `?format=…` : `list_bcf_topics` (`standard`), `list_smart_views`
+- **v0.1.4** — release courante. Identique à v0.1.3 (fonctionnel), mais **pin
+  `bim-core v0.1.1`** (`field_path` additif) — permet aux consommateurs de retirer
+  leur override uv `bim-core`.
+- **v0.1.3** — filtrage des topics BCF **côté serveur** via le query param
+  `?format=…` : `list_bcf_topics` (`standard`), `list_smart_views`
   (`bimdata-smartview`), `list_project_topics` (concaténation). Vérifié contre
   l'API réelle : sans `?format`, le serveur **n'inclut pas** les Smart Views.
+  (Pin `bim-core v0.1.0`.)
 - **⚠️ v0.1.2 — NE PAS UTILISER.** Le tag `bimdata-read-v0.1.2` a été **déplacé**
   après publication (violation de « never move published tags ») : les lockfiles
   existants restent épinglés sur le commit *pré-correctif* (`497c6058`, filtrage
