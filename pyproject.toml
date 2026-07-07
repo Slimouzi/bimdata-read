@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bimdata-read"
-version = "0.1.1"
+version = "0.1.2"
 description = "Noyau de lecture BIMData : client HTTP lecture seule + extraction/cache du ModelSnapshot."
 readme = "README.md"
 requires-python = ">=3.10"

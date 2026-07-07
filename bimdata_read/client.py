@@ -53,8 +53,9 @@ class BIMDataAuthError(PermissionError):
     """
 
 
-# Valeur du champ ``format`` d'un topic BCF qui cible le panneau Smart Views du
-# viewer (par opposition à ``"standard"`` = issue BCF classique).
+# Valeurs du query param / champ ``format`` d'un topic BCF : ``standard`` = issue
+# BCF classique, ``bimdata-smartview`` = Smart View (panneau dédié du viewer).
+BCF_FORMAT = "standard"
 SMARTVIEW_FORMAT = "bimdata-smartview"
 
 
@@ -250,29 +251,26 @@ class BIMDataReadClient:
         return r.json()
 
     # ── BCF Topics & Smart Views (lecture seule) ────────────────────────────
-    # BCF issues et Smart Views vivent dans la MÊME liste de topics BCF, projet-
-    # scopée ; le champ ``format`` les distingue (``standard`` = issue BCF,
-    # ``bimdata-smartview`` = Smart View, cf. l'écriture via ``full-topic``).
+    # BCF issues et Smart Views sont servies par le MÊME endpoint topics, mais le
+    # **filtrage est côté serveur** via le query param ``format`` : sans param, le
+    # endpoint ne renvoie que les issues ``standard`` (les Smart Views n'y sont
+    # PAS). On DOIT donc passer ``?format=…`` (vérifié contre l'API réelle).
 
-    def list_project_topics(self) -> list:
-        """Liste **tous** les BCF topics du projet (issues BCF + Smart Views).
-
-        ``GET /bcf/2.1/projects/{project}/topics``. Chaque topic porte au moins
-        ``guid`` / ``title`` / ``format`` / ``topic_type``.
-        """
-        return self._get(f"/bcf/2.1/projects/{self.project_id}/topics")
+    def _list_topics(self, fmt: str) -> list:
+        """``GET /bcf/2.1/projects/{project}/topics?format={fmt}``."""
+        return self._get(f"/bcf/2.1/projects/{self.project_id}/topics", params={"format": fmt})
 
     def list_bcf_topics(self) -> list:
-        """Issues **BCF** du projet (``format`` ≠ ``bimdata-smartview``)."""
-        return [
-            t for t in self.list_project_topics() if (t.get("format") or "") != SMARTVIEW_FORMAT
-        ]
+        """Issues **BCF** du projet (``format=standard``)."""
+        return self._list_topics(BCF_FORMAT)
 
     def list_smart_views(self) -> list:
-        """**Smart Views** du projet (``format`` == ``bimdata-smartview``)."""
-        return [
-            t for t in self.list_project_topics() if (t.get("format") or "") == SMARTVIEW_FORMAT
-        ]
+        """**Smart Views** du projet (``format=bimdata-smartview``)."""
+        return self._list_topics(SMARTVIEW_FORMAT)
+
+    def list_project_topics(self) -> list:
+        """**Tous** les topics du projet (issues BCF + Smart Views concaténées)."""
+        return self.list_bcf_topics() + self.list_smart_views()
 
 
 def _denormalize_raw_elements(raw: dict) -> list[dict]:
