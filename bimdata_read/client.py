@@ -53,6 +53,11 @@ class BIMDataAuthError(PermissionError):
     """
 
 
+# Valeur du champ ``format`` d'un topic BCF qui cible le panneau Smart Views du
+# viewer (par opposition à ``"standard"`` = issue BCF classique).
+SMARTVIEW_FORMAT = "bimdata-smartview"
+
+
 class BIMDataReadClient:
     """Client HTTP **lecture seule** pour l'API BIMData.
 
@@ -243,6 +248,31 @@ class BIMDataReadClient:
         r = self.session.get(url, timeout=self.timeout)
         r.raise_for_status()
         return r.json()
+
+    # ── BCF Topics & Smart Views (lecture seule) ────────────────────────────
+    # BCF issues et Smart Views vivent dans la MÊME liste de topics BCF, projet-
+    # scopée ; le champ ``format`` les distingue (``standard`` = issue BCF,
+    # ``bimdata-smartview`` = Smart View, cf. l'écriture via ``full-topic``).
+
+    def list_project_topics(self) -> list:
+        """Liste **tous** les BCF topics du projet (issues BCF + Smart Views).
+
+        ``GET /bcf/2.1/projects/{project}/topics``. Chaque topic porte au moins
+        ``guid`` / ``title`` / ``format`` / ``topic_type``.
+        """
+        return self._get(f"/bcf/2.1/projects/{self.project_id}/topics")
+
+    def list_bcf_topics(self) -> list:
+        """Issues **BCF** du projet (``format`` ≠ ``bimdata-smartview``)."""
+        return [
+            t for t in self.list_project_topics() if (t.get("format") or "") != SMARTVIEW_FORMAT
+        ]
+
+    def list_smart_views(self) -> list:
+        """**Smart Views** du projet (``format`` == ``bimdata-smartview``)."""
+        return [
+            t for t in self.list_project_topics() if (t.get("format") or "") == SMARTVIEW_FORMAT
+        ]
 
 
 def _denormalize_raw_elements(raw: dict) -> list[dict]:

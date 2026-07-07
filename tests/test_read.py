@@ -37,6 +37,48 @@ def test_url_and_paths():
     assert c._model_path("/storey") == "/cloud/1/project/2/model/3/storey"
 
 
+# ── BCF topics & Smart Views (lecture seule, filtrage par format) ────────────
+
+
+def _topics_client(monkeypatch, topics):
+    c = BIMDataReadClient(base_url="https://api.bimdata.io", api_key="k", project_id=42)
+    seen = {}
+
+    def _fake_get(path, params=None):
+        seen["path"] = path
+        return topics
+
+    monkeypatch.setattr(c, "_get", _fake_get)
+    return c, seen
+
+
+_TOPICS = [
+    {"guid": "a", "title": "T1", "format": "standard"},
+    {"guid": "b", "title": "SV1", "format": "bimdata-smartview"},
+    {"guid": "c", "title": "T2", "format": "standard"},
+    {"guid": "d", "title": "no-format"},  # format absent → traité comme BCF
+]
+
+
+def test_list_project_topics_uses_bcf_route(monkeypatch):
+    c, seen = _topics_client(monkeypatch, _TOPICS)
+    assert c.list_project_topics() == _TOPICS
+    assert seen["path"] == "/bcf/2.1/projects/42/topics"
+
+
+def test_list_bcf_topics_excludes_smartviews(monkeypatch):
+    c, _ = _topics_client(monkeypatch, _TOPICS)
+    titles = [t["title"] for t in c.list_bcf_topics()]
+    assert titles == ["T1", "T2", "no-format"]  # tout sauf le smartview
+
+
+def test_list_smart_views_only_smartview_format(monkeypatch):
+    c, _ = _topics_client(monkeypatch, _TOPICS)
+    svs = c.list_smart_views()
+    assert [t["title"] for t in svs] == ["SV1"]
+    assert all(t["format"] == "bimdata-smartview" for t in svs)
+
+
 # ── Dénormalisation /element/raw ─────────────────────────────────────────────
 
 _RAW = {
