@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bimdata-read"
-version = "0.1.0"
+version = "0.1.1"
 description = "Noyau de lecture BIMData : client HTTP lecture seule + extraction/cache du ModelSnapshot."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,6 +32,10 @@ bim-core = { git = "https://github.com/Slimouzi/bim-core.git", tag = "bim-core-v
 
 [tool.setuptools.packages.find]
 include = ["bimdata_read*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

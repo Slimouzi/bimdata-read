@@ -23,4 +23,4 @@ __all__ = [
     "load_snapshot_from_cache",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
