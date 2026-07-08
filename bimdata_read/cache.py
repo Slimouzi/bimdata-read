@@ -26,7 +26,9 @@ from .client import BIMDataReadClient
 from .snapshot import extract_snapshot
 
 # Bump à chaque changement de schéma de ModelSnapshot pour invalider les caches.
-_CACHE_SCHEMA_VERSION = 1
+# v2 (C2) : on ne met plus en cache un snapshot **partiel** (une route en échec) —
+# sinon le vide se resservirait indéfiniment jusqu'au prochain ré-upload.
+_CACHE_SCHEMA_VERSION = 2
 
 # Champs sérialisés du ModelSnapshot (ordre = ordre de reconstruction).
 _SNAPSHOT_FIELDS = (
@@ -165,16 +167,21 @@ def cached_extract_snapshot(
             return cached, True
 
     snap = extract_snapshot(client)
-    try:
-        save_snapshot_to_cache(
-            snap,
-            cloud_id=client.cloud_id,
-            project_id=client.project_id,
-            model_id=client.model_id,
-            model_modified_date=modified_date,
-            cache_dir=cache_dir,
-        )
-    except Exception:
-        # Échec d'écriture cache (permissions, disque plein) : non bloquant.
-        pass
+    # C2 — on ne met en cache QUE les snapshots complets. Un snapshot partiel
+    # (route BIMData en échec) mis en cache resservirait son vide à chaque audit
+    # suivant jusqu'au prochain ré-upload : on le laisse hors cache pour qu'une
+    # nouvelle extraction soit retentée.
+    if not snap.extraction_errors:
+        try:
+            save_snapshot_to_cache(
+                snap,
+                cloud_id=client.cloud_id,
+                project_id=client.project_id,
+                model_id=client.model_id,
+                model_modified_date=modified_date,
+                cache_dir=cache_dir,
+            )
+        except Exception:
+            # Échec d'écriture cache (permissions, disque plein) : non bloquant.
+            pass
     return snap, False

@@ -179,6 +179,23 @@ def test_extract_snapshot_tolerates_route_error():
     snap = br.extract_snapshot(_Broken())
     assert snap.summary()["n_zones"] == 0  # partial snapshot, no crash
     assert snap.summary()["n_spaces"] == 1
+    # C2 — l'échec de route est **attaché** au snapshot (pas seulement sur stderr).
+    assert snap.extraction_errors
+    assert any("get_zones" in e for e in snap.extraction_errors)
+
+
+def test_partial_snapshot_is_not_cached(tmp_path):
+    # C2 — un snapshot partiel (route en échec) ne doit PAS être mis en cache :
+    # sinon son vide se resservirait indéfiniment. Le 2e appel reste un miss.
+    class _Broken(_FakeClient):
+        def get_raw_elements(self):
+            raise RuntimeError("401")
+
+    client = _Broken()
+    snap1, hit1 = br.cached_extract_snapshot(client, cache_dir=tmp_path)
+    assert hit1 is False and snap1.extraction_errors
+    _snap2, hit2 = br.cached_extract_snapshot(client, cache_dir=tmp_path)
+    assert hit2 is False  # toujours un miss : rien n'a été mis en cache
 
 
 # ── Cache ────────────────────────────────────────────────────────────────────
