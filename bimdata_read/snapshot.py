@@ -14,8 +14,9 @@ def extract_snapshot(client: BIMDataReadClient) -> ModelSnapshot:
 
     Les routes BIMData retournent parfois 404 quand l'aspect n'est pas indexé par
     le moteur (modèle non finalisé, etc.) ; on tolère ces erreurs pour produire un
-    snapshot partiel — mais on les *journalise* sur stderr pour qu'un snapshot vide
-    ne soit pas confondu avec un modèle vide.
+    snapshot partiel — mais on les **attache** au snapshot (``extraction_errors``,
+    C2) *et* on les journalise sur stderr, pour qu'un snapshot partiel ne soit pas
+    confondu avec un modèle vide par le consommateur (audit).
     """
     errors: list[str] = []
 
@@ -36,6 +37,7 @@ def extract_snapshot(client: BIMDataReadClient) -> ModelSnapshot:
         zones=safe("get_zones", client.get_zones, []),
         elements=safe("get_raw_elements", client.get_raw_elements, []),
         structure_tree=safe("get_structure_tree", client.get_structure_tree, []),
+        extraction_errors=errors,
     )
     if errors:
         print(
